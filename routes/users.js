@@ -3,13 +3,14 @@ var router = express.Router();
 var path = require("path");
 var uuid= require('uuid');
 var multer = require('multer');
+var fs = require('fs');
 
 var storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/')
     },
     filename: function (req, file, cb) {
-        cb(null, uuid.v4() + path.extname(file.originalname));
+        cb(null, uuid.v4() + path.extname(file.originalname.toLowerCase()));
     }
 });
 
@@ -120,7 +121,7 @@ router.post('/register',function (req, res, next) {
                     console.log(user);
                 });
 
-                req.flash('success', 'You are now registered and can login');
+                req.flash('success', 'You are now registered and can login.');
 
                 res.location('/');
                 res.redirect('/');
@@ -138,8 +139,32 @@ router.get('/logout', function (req, res) {
 
 router.post('/upload',ensureAuthenticated, upload.single('code'), function (req, res) {
     if (req.file) {
+        console.log(req.file);
+        var fname=req.file.originalname;
+        console.log(fname);
+        var ext = path.extname(fname);
+        console.log(ext);
+        if(ext != '.py' && ext != '.c' && ext != '.cpp')
+        {
+            var delname = req.file.filename;
+            fs.unlinkSync('./uploads/'+delname);
+            req.flash('failure', 'Invalid File Type. Upload Only Python , C or C++ Files');
+            res.location('/');
+            res.redirect('/');
+            return;
+        }
+        var comm;
+        var code = req.file;
+        console.log(code);
+        if(ext == '.py')
+        {
+            comm = "pylint "+code.filename;
+        }
+        if(ext=='.c'||ext=='.cpp')
+        {
+            comm = "rats "+code.filename;
+        }
         var std_out=null;
-        //console.log('file present');
         var id = req.user.id;
         User.getUserById(id,function (err,foundObject) {
             if(err)
@@ -150,11 +175,8 @@ router.post('/upload',ensureAuthenticated, upload.single('code'), function (req,
             else
             {
                 console.log("found");
-                var code = req.file;
                 console.log(foundObject);
                 foundObject.codename = code.filename;
-                //var prepareR = "rats "+code.filename;
-                var preparePy = "pylint "+code.filename;
                 console.log(foundObject);
                 User.updateUser(foundObject,function (err,user) {
                     if(err)
@@ -173,7 +195,7 @@ router.post('/upload',ensureAuthenticated, upload.single('code'), function (req,
                         catch (err) {
                             console.log('chdir: ' + err);
                         }
-                        child = exec(preparePy, function (error, stdout, stderr) {
+                        child = exec(comm, function (error, stdout, stderr) {
                             console.log('stdout: ' + stdout);
                             res.send(stdout);
                             std_out=stdout;
@@ -202,5 +224,27 @@ function ensureAuthenticated(req, res, next){
     res.redirect('/users/login');
 }
 
+// function checkFileType(req,res,next)
+// {
+//     console.log("Inside File Type");
+//     console.log(req.file);
+//     if (req.file) {
+//         console.log("Inside If");
+//         console.log(req.file);
+//         var fname = req.file.originalname;
+//         console.log(fname);
+//         var ext = path.extname(fname);
+//         console.log(ext);
+//         if (ext !== '.py' || ext !== '.c' || ext !== '.cpp') {
+//             req.flash('failure', 'Invalid File Type. Upload Only Python , C or C++ Files');
+//             res.location('/');
+//             res.redirect('/');
+//         }
+//         else
+//         {
+//             next();
+//         }
+//         console.log("out of if did not go in");    }
+// }
 
 module.exports = router;
