@@ -1,0 +1,10 @@
+extends layout
+
+block content
+  h1 Members Area
+  p Welcome to the members area
+  form(method='post', action='/users/upload',enctype='multipart/form-data')
+    .form-group
+      label Upload File
+      input(name='code', type='file')
+    input.btn.btn-primary(type='submit', name='submit')
