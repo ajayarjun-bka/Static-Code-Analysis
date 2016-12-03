@@ -35,7 +35,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(session({
     secret:'secret',
     saveUninitialized: true,
-    resave: true
+    resave: true,
+    cookie: { maxAge: 60000 }
 }));
 
 // Passport
@@ -93,7 +94,7 @@ if (app.get('env') === 'development') {
         res.status(err.status || 500);
         res.render('error', {
             message: err.message,
-            error: err
+            error: ''
         });
     });
 }

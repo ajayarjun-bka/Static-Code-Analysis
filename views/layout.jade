@@ -17,8 +17,8 @@ html(lang='en')
                 .navbar-collapse.collapse
                     ul.nav.navbar-nav
                         if user
-                            li(class=(title == 'Members' ? 'active' : ''))
-                                a(href='/') Members
+                            li(class=(title == 'Upload' ? 'active' : ''))
+                                a(href='/') Upload File
                         if !user
                             li(class=(title == 'Register' ? 'active' : ''))
                                 a(href='/users/register') Register

@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var path = require("path");
-var uuid= require('uuid');
+var uuid = require('uuid');
 var multer = require('multer');
 var fs = require('fs');
 
@@ -14,7 +14,7 @@ var storage = multer.diskStorage({
     }
 });
 
-var upload = multer({ storage: storage });
+var upload = multer({storage: storage});
 
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
@@ -72,7 +72,7 @@ passport.use(new LocalStrategy(function (username, password, done) {
     });
 }));
 
-router.post('/register',function (req, res, next) {
+router.post('/register', function (req, res, next) {
     req.body.name = req.sanitize(req.body.name)
     var name = (req.body.name);
     console.log('Name' + name);
@@ -81,14 +81,13 @@ router.post('/register',function (req, res, next) {
     var password = req.body.password;
     var password2 = req.body.password2;
     var codename = "empty";
-
-
     // Form Validator
     req.checkBody('name', 'Name field is required').notEmpty();
     req.checkBody('email', 'Email field is required').notEmpty();
     req.checkBody('email', 'Email is not valid').isEmail();
     req.checkBody('username', 'Username field is required').notEmpty();
     req.checkBody('password', 'Password field is required').notEmpty();
+    req.checkBody('password','Minimum 8 characters required').matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/, "i");
     req.checkBody('password2', 'Passwords do not match').equals(req.body.password);
 
     // Check Errors
@@ -120,14 +119,11 @@ router.post('/register',function (req, res, next) {
                     if (err) throw err;
                     console.log(user);
                 });
-
                 req.flash('success', 'You are now registered and can login.');
-
                 res.location('/');
                 res.redirect('/');
             }
         });
-
     }
 });
 
@@ -137,55 +133,55 @@ router.get('/logout', function (req, res) {
     res.redirect('/users/login');
 });
 
-router.post('/upload',ensureAuthenticated, upload.single('code'), function (req, res) {
+router.post('/upload', ensureAuthenticated, upload.single('code'), function (req, res) {
     if (req.file) {
-        console.log(req.file);
-        var fname=req.file.originalname;
-        console.log(fname);
+        var fname = req.file.originalname;
         var ext = path.extname(fname);
-        console.log(ext);
-        if(ext != '.py' && ext != '.c' && ext != '.cpp')
+        if (ext != '.py' && ext != '.c' && ext != '.cpp') {
+            var delname = req.file.filename;
+            fs.unlinkSync('./uploads/' + delname);
+            req.flash('failure', 'Invalid File Type. Upload Only Python , C or C++ Files');
+            res.location('/');
+            res.redirect('/');
+            return;
+        }
+        if(req.file.size>1000000)
         {
             var delname = req.file.filename;
-            fs.unlinkSync('./uploads/'+delname);
-            req.flash('failure', 'Invalid File Type. Upload Only Python , C or C++ Files');
+            fs.unlinkSync('./uploads/' + delname);
+            req.flash('failure', 'File Too Big. Upload below 1Mb');
             res.location('/');
             res.redirect('/');
             return;
         }
         var comm;
         var code = req.file;
-        console.log(code);
-        if(ext == '.py')
-        {
-            comm = "pylint "+code.filename;
+        console.log(ext);
+        if (ext == '.py') {
+            comm = "pylint " + code.filename;
+            console.log("inside pylint");
         }
-        if(ext=='.c'||ext=='.cpp')
-        {
-            comm = "rats "+code.filename;
+        if (ext == '.c' || ext == '.cpp') {
+            comm = "rats " + code.filename;
+            console.log("inside rats");
         }
-        var std_out=null;
         var id = req.user.id;
-        User.getUserById(id,function (err,foundObject) {
-            if(err)
-            {
+        User.getUserById(id, function (err, foundObject) {
+            if (err) {
                 console.log("error");
                 console.log(err);
             }
-            else
-            {
+            else {
                 console.log("found");
                 console.log(foundObject);
                 foundObject.codename = code.filename;
                 console.log(foundObject);
-                User.updateUser(foundObject,function (err,user) {
-                    if(err)
-                    {
+                User.updateUser(foundObject, function (err, user) {
+                    if (err) {
                         console.log("error");
                         console.log(err);
                     }
-                    else
-                    {
+                    else {
                         console.log('user updated');
                         console.log('Starting directory: ' + process.cwd());
                         try {
@@ -195,56 +191,35 @@ router.post('/upload',ensureAuthenticated, upload.single('code'), function (req,
                         catch (err) {
                             console.log('chdir: ' + err);
                         }
-                        child = exec(comm, function (error, stdout, stderr) {
+                            child = exec(comm, function (error, stdout, stderr) {
                             console.log('stdout: ' + stdout);
-                            res.send(stdout);
-                            std_out=stdout;
-                            //sys.print('stderr: ' + stderr);
+                            req.session['output']=stdout;
+                            req.flash('success', 'Here is your result');
+                            res.redirect('/output');
+                            //res.render('output', {output: stdout});
+                            process.chdir('..');
                             if (error !== null) {
                                 console.log('exec error: ' + error);
                             }
-                            //res.render('output',{output:stdout});
                         });
                     }
                 })
             }
         });
-        //res.send("File Uploaded"+std_out);
     }
     else {
         console.log('file not present');
-        res.send("File Not Uploaded");
+        req.flash('failure', 'No File Not Uploaded');
+        res.location('/');
+        res.redirect('/');
     }
 });
 
-function ensureAuthenticated(req, res, next){
-    if(req.isAuthenticated()){
+function ensureAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
         return next();
     }
     res.redirect('/users/login');
 }
-
-// function checkFileType(req,res,next)
-// {
-//     console.log("Inside File Type");
-//     console.log(req.file);
-//     if (req.file) {
-//         console.log("Inside If");
-//         console.log(req.file);
-//         var fname = req.file.originalname;
-//         console.log(fname);
-//         var ext = path.extname(fname);
-//         console.log(ext);
-//         if (ext !== '.py' || ext !== '.c' || ext !== '.cpp') {
-//             req.flash('failure', 'Invalid File Type. Upload Only Python , C or C++ Files');
-//             res.location('/');
-//             res.redirect('/');
-//         }
-//         else
-//         {
-//             next();
-//         }
-//         console.log("out of if did not go in");    }
-// }
 
 module.exports = router;

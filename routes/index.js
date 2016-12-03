@@ -3,7 +3,16 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', ensureAuthenticated, function (req, res, next) {
-    res.render('index', {title: 'Members'});
+    req.session.output=null;
+    res.render('index', {title: 'Upload'});
+});
+
+
+router.get('/output', ensureAuthenticated, function (req, res, next) {
+    if (req.session.output)
+        res.render('output', {title: 'Output',output:req.session.output});
+    else
+        res.render('output', {title: 'Output',output:'please Upload a file first and then come check for results'});
 });
 
 function ensureAuthenticated(req, res, next) {
