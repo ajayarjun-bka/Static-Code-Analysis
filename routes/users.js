@@ -24,9 +24,9 @@ var exec = require('child_process').exec;
 var User = require('../models/user');
 
 /* GET users listing. */
-router.get('/', function (req, res, next) {
-    res.send('respond with a resource');
-});
+// router.get('/', function (req, res, next) {
+//     res.send('respond with a resource');
+// });
 
 router.get('/register', function (req, res, next) {
     res.render('register', {title: 'Register'});
@@ -50,7 +50,7 @@ passport.serializeUser(function (user, done) {
 
 passport.deserializeUser(function (id, done) {
     User.getUserById(id, function (err, user) {
-        done(err, user);
+        done(err, user._id);
     });
 });
 
@@ -87,7 +87,8 @@ router.post('/register', function (req, res, next) {
     req.checkBody('email', 'Email is not valid').isEmail();
     req.checkBody('username', 'Username field is required').notEmpty();
     req.checkBody('password', 'Password field is required').notEmpty();
-    req.checkBody('password','Minimum 8 characters required').matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/, "i");
+    req.checkBody('password','Passwor should contain minumum  8 characters,atleast one capital letter and a number')
+        .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/, "i");
     req.checkBody('password2', 'Passwords do not match').equals(req.body.password);
 
     // Check Errors
@@ -165,7 +166,10 @@ router.post('/upload', ensureAuthenticated, upload.single('code'), function (req
             comm = "rats " + code.filename;
             console.log("inside rats");
         }
-        var id = req.user.id;
+        var id = req.user;
+        //var s= req.user;
+        //console.log('user '+ s);
+        //console.log("id " + id);
         User.getUserById(id, function (err, foundObject) {
             if (err) {
                 console.log("error");
@@ -173,7 +177,7 @@ router.post('/upload', ensureAuthenticated, upload.single('code'), function (req
             }
             else {
                 console.log("found");
-                console.log(foundObject);
+                //console.log(foundObject);
                 foundObject.codename = code.filename;
                 console.log(foundObject);
                 User.updateUser(foundObject, function (err, user) {
