@@ -73,24 +73,39 @@ passport.use(new LocalStrategy(function (username, password, done) {
 }));
 
 router.post('/register', function (req, res, next) {
-    req.body.name = req.sanitize(req.body.name)
     var name = (req.body.name);
-    console.log('Name' + name);
     var email = req.body.email;
     var username = req.body.username;
     var password = req.body.password;
     var password2 = req.body.password2;
     var codename = "empty";
+
     // Form Validator
     req.checkBody('name', 'Name field is required').notEmpty();
+    console.log(name.length);
+    if (name.length != 0) {
+        console.log("looop in");
+        req.checkBody('name', 'Name Can contain only alphabets,numbers,"_","-" and Minimum 3 characters')
+            .matches(/^[a-z0-9_-]{3,16}$/);
+    }
     req.checkBody('email', 'Email field is required').notEmpty();
-    req.checkBody('email', 'Email is not valid').isEmail();
+    if (email.length != 0) {
+        req.checkBody('email', 'Email is not valid').isEmail();
+    }
     req.checkBody('username', 'Username field is required').notEmpty();
+    if (username.length != 0) {
+        req.checkBody('username', 'Name Can contain only alphabets,numbers,"_","-" and Minimum 3 characters and max 16')
+            .matches(/^[a-z0-9_-]{3,16}$/);
+    }
     req.checkBody('password', 'Password field is required').notEmpty();
-    req.checkBody('password','Passwor should contain minumum  8 characters,atleast one capital letter and a number')
-        .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/, "i");
-    req.checkBody('password2', 'Passwords do not match').equals(req.body.password);
-
+    if (password.length != 0) {
+        req.checkBody('password', 'Passwor should contain minumum  8 characters,atleast one UpperCase and a Number')
+            .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/, "i");
+    }
+    req.checkBody('password2', 'Confirm Password field is required').notEmpty();
+    if (password2.length != 0) {
+        req.checkBody('password2', 'Passwords do not match').equals(req.body.password);
+    }
     // Check Errors
     var errors = req.validationErrors();
 
@@ -146,8 +161,7 @@ router.post('/upload', ensureAuthenticated, upload.single('code'), function (req
             res.redirect('/');
             return;
         }
-        if(req.file.size>1000000)
-        {
+        if (req.file.size > 1000000) {
             var delname = req.file.filename;
             fs.unlinkSync('./uploads/' + delname);
             req.flash('failure', 'File Too Big. Upload below 1Mb');
@@ -195,9 +209,9 @@ router.post('/upload', ensureAuthenticated, upload.single('code'), function (req
                         catch (err) {
                             console.log('chdir: ' + err);
                         }
-                            child = exec(comm, function (error, stdout, stderr) {
+                        child = exec(comm, function (error, stdout, stderr) {
                             console.log('stdout: ' + stdout);
-                            req.session['output']=stdout;
+                            req.session['output'] = stdout;
                             req.flash('success', 'Here is your result');
                             res.redirect('/output');
                             //res.render('output', {output: stdout});
